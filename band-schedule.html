@@ -360,14 +360,28 @@ function firstDOW(y, m) { return new Date(y, m-1, 1).getDay(); }
 
 /* ── Firebase 리스너 연결 ── */
 function attachListener() {
-  if (state.listener) state.listener.off();
+  if (state.listener) { state.listener.off(); state.listener = null; }
   const ref = db.ref(`schedule/${monthKey(state.year, state.month)}`);
-  ref.on('value', snap => {
+  const timeout = setTimeout(() => {
+    if (state.loading) {
+      state.loading = false;
+      state.error = "Firebase 연결 실패. 브라우저 콘솔(F12)에서 오류를 확인해 주세요.";
+      render();
+    }
+  }, 8000);
+  ref.on("value", snap => {
+    clearTimeout(timeout);
+    state.error = null;
     const data = snap.val() || {};
     state.allData = {};
     MEMBERS.forEach(m => { state.allData[m] = data[m] || {}; });
     if (state.member) state.myData = { ...state.allData[state.member] };
     state.loading = false;
+    render();
+  }, err => {
+    clearTimeout(timeout);
+    state.loading = false;
+    state.error = "Firebase 오류: " + err.message;
     render();
   });
   state.listener = ref;
@@ -444,6 +458,7 @@ function renderLogin() {
 /* ── 렌더: 달력 ── */
 function renderCalendar() {
   if (state.loading) return `<div class="loading">불러오는 중...</div>`;
+  if (state.error) return `<div class="loading" style="color:#a32d2d;">${state.error}</div>`;
 
   const { year, month, member, myData, allData } = state;
   const total   = daysIn(year, month);
