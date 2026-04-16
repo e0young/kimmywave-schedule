@@ -220,7 +220,7 @@ function renderSetlist() {
   const rows = SETLIST.map(song => {
     const isExp = state.expandedSong === song.num;
     const allParts = Object.values(song.parts).flat();
-    const metaStr = allParts.map(s=>chipLabel(s)+(s.includes('(Chorus)')?'(C)':s.includes('BeatBox')?'(BB)':'')).join(' · ');
+    const metaStr = allParts.map(s=>chipLabel(s)+(s.includes('BeatBox')?'(BB)':'')).join(' · ');
 
     const detailHTML = isExp ? `
       <div class="song-detail">
