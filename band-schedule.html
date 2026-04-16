@@ -214,13 +214,17 @@ function chipClass(s) {
   if (s.includes('(O)'))      return 's-chip s-chip-o';
   return 's-chip s-chip-etc';
 }
-function chipLabel(s) { return s.replace('(O)','').replace('(X)','').replace('(Chorus)',' C').trim(); }
+function chipLabel(s) {
+  if (s.includes('(Chorus)')) return s.replace('(Chorus)','').trim() + '(C)';
+  if (s.includes('(BeatBox)')) return s.replace('(BeatBox)','').trim() + '(BB)';
+  return s.replace('(O)','').replace('(X)','').trim();
+}
 
 function renderSetlist() {
   const rows = SETLIST.map(song => {
     const isExp = state.expandedSong === song.num;
     const allParts = Object.values(song.parts).flat();
-    const metaStr = allParts.map(s=>chipLabel(s)+(s.includes('BeatBox')?'(BB)':'')).join(' · ');
+    const metaStr = allParts.map(s=>chipLabel(s)).join(' · ');
 
     const detailHTML = isExp ? `
       <div class="song-detail">
