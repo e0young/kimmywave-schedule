@@ -4,320 +4,104 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>합주 일정 조율</title>
-
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #ffffff;
-      --bg2: #f8f8f6;
-      --bg3: #f0efea;
-      --text: #1c1c1a;
-      --text2: #6b6b66;
-      --text3: #a0a09a;
-      --border: #e4e4de;
-      --border2: #d0d0c8;
-      --green-bg: #eaf3de;
-      --green: #3b6d11;
-      --green-border: #639922;
-      --red-bg: #fef0f0;
-      --red: #a32d2d;
-      --radius: 10px;
-      --radius-sm: 6px;
+      --bg: #ffffff; --bg2: #f8f8f6; --bg3: #f0efea;
+      --text: #1c1c1a; --text2: #6b6b66; --text3: #a0a09a;
+      --border: #e4e4de; --border2: #d0d0c8;
+      --r: 10px; --rs: 6px;
     }
-
     body {
-      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-      background: var(--bg2);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
+      font-family: 'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+      background: var(--bg2); color: var(--text);
+      min-height: 100vh; display: flex; justify-content: center;
       padding: 1.5rem 1rem 3rem;
     }
-
-    #app { width: 100%; max-width: 460px; }
-
-    /* ── Header ── */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.25rem;
-    }
-
-    .logo { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; }
-
-    /* ── Button base ── */
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: 0.5px solid var(--border2);
-      background: var(--bg);
-      color: var(--text);
-      border-radius: var(--radius-sm);
-      padding: 6px 14px;
-      font-size: 13px;
-      transition: background 0.12s, border-color 0.12s;
-    }
-    button:hover { background: var(--bg3); border-color: var(--border2); }
+    #app { width: 100%; max-width: 500px; }
+    button { font-family: inherit; cursor: pointer; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); border-radius: var(--rs); padding: 6px 14px; font-size: 13px; transition: background .12s; }
+    button:hover { background: var(--bg3); }
     button:active { transform: scale(0.98); }
 
-    /* ── Login screen ── */
-    .login-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      letter-spacing: -0.02em;
-    }
-    .login-sub {
-      font-size: 14px;
-      color: var(--text2);
-      margin-bottom: 1.5rem;
-    }
-    .member-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .member-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: var(--radius);
-      border: 0.5px solid var(--border);
-      background: var(--bg);
-      text-align: left;
-      cursor: pointer;
-      transition: background 0.12s, border-color 0.12s, transform 0.1s;
-    }
-    .member-btn:hover { background: var(--bg3); border-color: var(--border2); transform: translateY(-1px); }
-    .member-btn:active { transform: scale(0.98); }
-    .avatar {
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 600;
-      flex-shrink: 0;
-    }
-    .member-name { font-size: 14px; color: var(--text); }
+    .login-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; letter-spacing: -.02em; }
+    .login-sub { font-size: 14px; color: var(--text2); margin-bottom: 1.5rem; }
+    .member-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .member-btn { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r); border: 0.5px solid var(--border); background: var(--bg); cursor: pointer; transition: background .12s, transform .1s; }
+    .member-btn:hover { background: var(--bg3); transform: translateY(-1px); }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .member-name { font-size: 14px; }
 
-    /* ── Calendar top bar ── */
-    .top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.25rem;
-    }
-    .user-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .user-badge { display: flex; align-items: center; gap: 8px; }
     .user-badge .avatar { width: 30px; height: 30px; font-size: 11px; }
     .user-name { font-size: 15px; font-weight: 600; }
+    .live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #3b6d11; background: #eaf3de; padding: 3px 8px; border-radius: 99px; }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b6d11; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    .month-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
+    .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .month-label { font-size: 15px; font-weight: 600; }
-    .nav-btn { padding: 4px 14px; font-size: 14px; }
 
-    /* ── Day-of-week header ── */
-    .dow-row {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 3px;
-      margin-bottom: 4px;
-    }
-    .dow-cell {
-      text-align: center;
-      font-size: 11px;
-      padding: 3px 0;
-      color: var(--text2);
-    }
+    .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 4px; }
+    .dow-cell { text-align: center; font-size: 11px; padding: 3px 0; color: var(--text2); }
     .dow-cell.sun { color: #e24b4a; }
     .dow-cell.sat { color: #378add; }
 
-    /* ── Calendar grid ── */
-    .cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 3px;
-      margin-bottom: 1rem;
-    }
-    .day-cell {
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 5px 3px;
-      min-height: 62px;
-      cursor: pointer;
-      background: transparent;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transition: background 0.1s, border-color 0.1s;
-      user-select: none;
-    }
-    .day-cell:hover { border-color: var(--border2); background: var(--bg3); }
-    .day-cell.status-ok  { background: var(--green-bg); }
-    .day-cell.status-no  { background: var(--red-bg); }
-    .day-cell.all-go     { background: var(--green-bg); border: 1.5px solid var(--green-border); }
-    .day-cell.is-today   { outline: 2px solid #378add; outline-offset: 1px; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 1rem; }
 
-    .day-num {
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--text);
-      margin-bottom: 2px;
-    }
-    .day-num.today-num { font-weight: 700; }
-    .day-num.sun-num   { color: #e24b4a; }
-    .day-num.sat-num   { color: #378add; }
+    .day-cell { border: 0.5px solid var(--border); border-radius: var(--rs); overflow: hidden; display: flex; flex-direction: column; min-height: 74px; }
+    .day-cell.today { outline: 2px solid #378add; outline-offset: 1px; }
 
-    .day-status {
-      font-size: 9px;
-      line-height: 1.3;
-      text-align: center;
-      min-height: 12px;
-    }
-    .day-status.ok { color: var(--green); }
-    .day-status.no { color: var(--red); }
+    .day-header { padding: 3px 4px 2px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: center; }
+    .day-num { font-size: 11px; font-weight: 400; color: var(--text); }
+    .day-num.bold { font-weight: 700; }
+    .day-num.sun { color: #e24b4a; }
+    .day-num.sat { color: #378add; }
 
-    .dot-row {
-      display: flex;
-      gap: 2px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 3px;
-    }
-    .dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+    .slot { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px; cursor: pointer; transition: background .1s; position: relative; }
+    .slot:first-of-type { border-bottom: 0.5px solid var(--border); }
+    .slot:hover { filter: brightness(0.93); }
+    .slot.unavail { background: #fef0f0; }
 
-    .day-count {
-      font-size: 9px;
-      color: var(--text3);
-      margin-top: 2px;
-    }
-    .day-count.full { color: var(--green); }
+    .slot-label { font-size: 9px; color: var(--text3); line-height: 1; margin-bottom: 2px; }
+    .slot.unavail .slot-label { color: #a32d2d; font-weight: 700; }
 
-    /* ── Summary cards ── */
-    .summary-card {
-      background: var(--bg);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      margin-bottom: 10px;
-    }
-    .summary-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .summary-val {
-      font-size: 13px;
-      color: var(--text2);
-    }
-    .summary-val.has-days { color: var(--green); font-weight: 500; }
-    .near-title {
-      font-size: 12px;
-      font-weight: 600;
-      margin: 8px 0 2px;
-    }
-    .near-val { font-size: 12px; color: var(--text2); }
+    .dot-row { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
+    .dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
 
-    /* ── Member status grid ── */
-    .status-grid {
-      background: var(--bg);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      margin-bottom: 10px;
-    }
-    .status-grid-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text2);
-      margin-bottom: 8px;
-    }
-    .status-member-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-    .status-member {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-    }
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .status-member-name { color: var(--text); }
-    .status-member-count { color: var(--text2); }
-    .status-member-none  { color: var(--text3); }
+    .grade-pip { position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; border-radius: 50%; }
+    .grade-pip.perfect { background: #3b6d11; }
+    .grade-pip.good    { background: #639922; }
+    .grade-pip.okay    { background: #BA7517; }
 
-    .hint {
-      font-size: 11px;
-      color: var(--text3);
-      text-align: center;
-      line-height: 1.6;
-      margin-top: 4px;
-    }
+    .summary-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--r); padding: 12px 14px; margin-bottom: 10px; }
+    .summary-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .grade-badge { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .summary-row { display: flex; gap: 8px; font-size: 12px; margin-bottom: 4px; align-items: flex-start; }
+    .slot-tag { font-size: 10px; background: var(--bg3); padding: 1px 6px; border-radius: 3px; color: var(--text2); flex-shrink: 0; margin-top: 1px; }
+    .days { color: var(--text); line-height: 1.5; }
+    .summary-none { font-size: 12px; color: var(--text3); }
 
-    /* ── Loading ── */
-    .loading {
-      text-align: center;
-      padding: 3rem;
-      color: var(--text2);
-      font-size: 14px;
-    }
+    .status-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--r); padding: 12px 14px; margin-bottom: 10px; }
+    .status-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+    .status-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .status-row { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-    /* ── Real-time badge ── */
-    .live-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      color: var(--green);
-      background: var(--green-bg);
-      padding: 3px 8px;
-      border-radius: 99px;
-    }
-    .live-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text2); margin-bottom: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    .hint { font-size: 11px; color: var(--text3); text-align: center; line-height: 1.7; margin-top: 4px; }
+    .loading { text-align: center; padding: 3rem; color: var(--text2); font-size: 14px; }
+    .error-msg { text-align: center; padding: 2rem; color: #a32d2d; font-size: 13px; }
   </style>
 </head>
 <body>
 <div id="app"></div>
-
 <script>
-/* ================================================================
-   ★ Firebase 설정값 입력 (아래 7줄만 본인 프로젝트 값으로 교체)
-   Firebase Console → 프로젝트 설정 → 내 앱 → SDK 설정 및 구성
-   ================================================================ */
 const firebaseConfig = {
   apiKey:            "AIzaSyClctoIM-AjWGcXo9q77neN0ubQIqI3nOI",
   authDomain:        "kimmywave-schedule.firebaseapp.com",
@@ -327,217 +111,193 @@ const firebaseConfig = {
   messagingSenderId: "55851759863",
   appId:             "1:55851759863:web:1e42b9d6196fbce6387bf2"
 };
-/* ================================================================ */
 
-/* ── 멤버 목록 & 색상 ── */
 const MEMBERS = ['보컬(박)','보컬(이)','기타(손)','기타(배)','베이스','건반','드럼(의)','드럼(현)'];
-const COLORS = {
-  '보컬(박)': '#7F77DD', '보컬(이)': '#D4537E',
-  '기타(손)': '#378ADD', '기타(배)': '#1D9E75',
-  '베이스':   '#D85A30', '건반':     '#BA7517',
-  '드럼(의)': '#639922', '드럼(현)': '#888780'
+const COLORS  = {
+  '보컬(박)':'#7F77DD','보컬(이)':'#D4537E','기타(손)':'#378ADD','기타(배)':'#1D9E75',
+  '베이스':'#D85A30','건반':'#BA7517','드럼(의)':'#639922','드럼(현)':'#888780'
 };
+const SLOTS = ['점심','저녁'];
+const GRADE_LABEL = { perfect:'전원 가능', good:'가능', okay:'아쉽지만 가능' };
+const GRADE_COLOR = { perfect:'#3b6d11', good:'#639922', okay:'#BA7517' };
 
-/* ── Firebase 초기화 ── */
+function calcGrade(availSet) {
+  const hasVocal   = ['보컬(박)','보컬(이)'].some(m => availSet.has(m));
+  const hasDrum    = ['드럼(의)','드럼(현)'].some(m => availSet.has(m));
+  const hasGuitarS = availSet.has('기타(손)');
+  const hasKeybd   = availSet.has('건반');
+  const hasGuitarB = availSet.has('기타(배)');
+  const hasBass    = availSet.has('베이스');
+  if (!hasGuitarS || !hasKeybd) return 'none';
+  if (!hasGuitarB && !hasBass) return 'none';
+  if (!hasVocal || !hasDrum) return 'none';
+  if (availSet.size === MEMBERS.length) return 'perfect';
+  if (hasGuitarB && hasBass) return 'good';
+  return 'okay';
+}
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ── 상태 ── */
 let state = {
-  member:   null,
-  year:     new Date().getFullYear(),
-  month:    new Date().getMonth() + 1,
-  myData:   {},   // { "1": "O", "5": "X", ... }
-  allData:  {},   // { "보컬(박)": { "1": "O", ... }, ... }
-  listener: null,
-  loading:  false
+  member:null, year:new Date().getFullYear(), month:new Date().getMonth()+1,
+  myData:{}, allData:{}, listener:null, loading:false, error:null
 };
 
-/* ── 유틸 ── */
-function monthKey(y, m) { return `${y}-${String(m).padStart(2,'0')}`; }
-function daysIn(y, m)   { return new Date(y, m, 0).getDate(); }
-function firstDOW(y, m) { return new Date(y, m-1, 1).getDay(); }
+function monthKey(y,m){ return `${y}-${String(m).padStart(2,'0')}`; }
+function daysIn(y,m)  { return new Date(y,m,0).getDate(); }
+function firstDOW(y,m){ return new Date(y,m-1,1).getDay(); }
 
-/* ── Firebase 리스너 연결 ── */
 function attachListener() {
   if (state.listener) { state.listener.off(); state.listener = null; }
   const ref = db.ref(`schedule/${monthKey(state.year, state.month)}`);
-  const timeout = setTimeout(() => {
-    if (state.loading) {
-      state.loading = false;
-      state.error = "Firebase 연결 실패. 브라우저 콘솔(F12)에서 오류를 확인해 주세요.";
-      render();
-    }
+  const tid = setTimeout(() => {
+    if (state.loading) { state.loading=false; state.error='Firebase 연결 실패. 새로고침 해보세요.'; render(); }
   }, 8000);
-  ref.on("value", snap => {
-    clearTimeout(timeout);
-    state.error = null;
+  ref.on('value', snap => {
+    clearTimeout(tid); state.error = null;
     const data = snap.val() || {};
     state.allData = {};
     MEMBERS.forEach(m => { state.allData[m] = data[m] || {}; });
-    if (state.member) state.myData = { ...state.allData[state.member] };
-    state.loading = false;
-    render();
+    if (state.member) state.myData = {...state.allData[state.member]};
+    state.loading = false; render();
   }, err => {
-    clearTimeout(timeout);
-    state.loading = false;
-    state.error = "Firebase 오류: " + err.message;
-    render();
+    clearTimeout(tid); state.loading=false; state.error='오류: '+err.message; render();
   });
   state.listener = ref;
 }
 
-/* ── 로그인 ── */
-function doLogin(member) {
-  state.member  = member;
-  state.loading = true;
+function doLogin(m)   { state.member=m; state.loading=true; render(); attachListener(); }
+function doLogout()   { if(state.listener){state.listener.off();state.listener=null;} Object.assign(state,{member:null,myData:{},allData:{},loading:false,error:null}); render(); }
+
+function doToggle(d, slot) {
+  const key = `${d}_${slot}`;
+  const ref = db.ref(`schedule/${monthKey(state.year,state.month)}/${state.member}/${key}`);
+  if (state.myData[key]==='X') { delete state.myData[key]; ref.remove(); }
+  else                          { state.myData[key]='X';   ref.set('X'); }
+  state.allData[state.member] = {...state.myData};
   render();
-  attachListener();
 }
 
-/* ── 날짜 토글 ── */
-function doToggle(d) {
-  const key = String(d);
-  const cur = state.myData[key];
-  let next;
-  if      (!cur)       next = 'O';
-  else if (cur === 'O') next = 'X';
-  else                  next = null;
-
-  const ref = db.ref(`schedule/${monthKey(state.year, state.month)}/${state.member}/${key}`);
-  if (next) ref.set(next);
-  else      ref.remove();
-}
-
-/* ── 월 이동 ── */
 function doMonth(delta) {
-  if (state.listener) { state.listener.off(); state.listener = null; }
-  let { year, month } = state;
-  month += delta;
-  if (month > 12) { year++; month = 1; }
-  if (month < 1)  { year--; month = 12; }
-  state.year = year; state.month = month;
-  state.myData = {}; state.allData = {};
-  state.loading = true;
-  render();
-  attachListener();
+  if (state.listener) { state.listener.off(); state.listener=null; }
+  let {year,month}=state; month+=delta;
+  if (month>12){year++;month=1;} if(month<1){year--;month=12;}
+  state.year=year; state.month=month; state.myData={}; state.allData={}; state.loading=true;
+  render(); attachListener();
 }
 
-/* ── 로그아웃 ── */
-function doLogout() {
-  if (state.listener) { state.listener.off(); state.listener = null; }
-  state.member  = null;
-  state.myData  = {};
-  state.allData = {};
-  state.loading = false;
-  render();
+function getSlotInfo(d, slot) {
+  const key = `${d}_${slot}`;
+  const unavail = new Set(MEMBERS.filter(m => state.allData[m]?.[key]==='X'));
+  const avail   = new Set(MEMBERS.filter(m => !unavail.has(m)));
+  return { unavail, avail, grade: calcGrade(avail) };
 }
 
-/* ── 렌더: 로그인 화면 ── */
 function renderLogin() {
   return `
-    <div class="header">
-      <span class="logo">밴드 스케줄</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+      <span style="font-size:13px;font-weight:600;letter-spacing:.08em;color:var(--text3);">밴드 스케줄</span>
       <span class="live-badge"><span class="live-dot"></span>실시간 동기화</span>
     </div>
     <p class="login-title">합주 일정 조율</p>
     <p class="login-sub">내 파트를 선택하세요</p>
     <div class="member-grid">
-      ${MEMBERS.map(m => `
+      ${MEMBERS.map(m=>`
         <button class="member-btn" onclick="doLogin('${m}')">
-          <div class="avatar" style="background:${COLORS[m]}22; border: 1.5px solid ${COLORS[m]}; color:${COLORS[m]};">
-            ${m[0]}
-          </div>
+          <div class="avatar" style="background:${COLORS[m]}22;border:1.5px solid ${COLORS[m]};color:${COLORS[m]};">${m[0]}</div>
           <span class="member-name">${m}</span>
-        </button>
-      `).join('')}
-    </div>
-  `;
+        </button>`).join('')}
+    </div>`;
 }
 
-/* ── 렌더: 달력 ── */
 function renderCalendar() {
   if (state.loading) return `<div class="loading">불러오는 중...</div>`;
-  if (state.error) return `<div class="loading" style="color:#a32d2d;">${state.error}</div>`;
+  if (state.error)   return `<div class="error-msg">${state.error}</div>`;
 
-  const { year, month, member, myData, allData } = state;
-  const total   = daysIn(year, month);
-  const first   = firstDOW(year, month);
-  const today   = new Date();
-  const todayD  = today.getFullYear() === year && today.getMonth()+1 === month ? today.getDate() : -1;
+  const {year,month,member,myData} = state;
+  const total=daysIn(year,month), first=firstDOW(year,month);
+  const today=new Date();
+  const todayD = today.getFullYear()===year&&today.getMonth()+1===month ? today.getDate() : -1;
 
-  /* 전원 가능 / 거의 가능 계산 */
-  const possibleDays = [], nearDays = [];
-  for (let d = 1; d <= total; d++) {
-    const key  = String(d);
-    const oLen = MEMBERS.filter(m => allData[m]?.[key] === 'O').length;
-    const xLen = MEMBERS.filter(m => allData[m]?.[key] === 'X').length;
-    if (oLen === MEMBERS.length) possibleDays.push(d);
-    else if (oLen === MEMBERS.length - 1 && xLen === 0) nearDays.push(d);
+  const byGrade = {
+    perfect:{점심:[],저녁:[]}, good:{점심:[],저녁:[]}, okay:{점심:[],저녁:[]}
+  };
+  for (let d=1;d<=total;d++) {
+    for (const slot of SLOTS) {
+      const {grade} = getSlotInfo(d, slot);
+      if (grade!=='none') byGrade[grade][slot].push(d);
+    }
   }
 
-  /* 달력 셀 */
   let cells = '';
-  for (let i = 0; i < first; i++) cells += '<div></div>';
+  for (let i=0;i<first;i++) cells += '<div></div>';
 
-  for (let d = 1; d <= total; d++) {
-    const key   = String(d);
-    const myS   = myData[key];
-    const oList = MEMBERS.filter(m => allData[m]?.[key] === 'O');
-    const xList = MEMBERS.filter(m => allData[m]?.[key] === 'X');
-    const allGo = oList.length === MEMBERS.length;
-    const dow   = (first + d - 1) % 7;
+  for (let d=1;d<=total;d++) {
+    const dow = (first+d-1)%7;
+    const isToday = d===todayD;
+    const numCls = ['day-num', isToday?'bold':'', dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ');
 
-    let cls = 'day-cell';
-    if (allGo)      cls += ' all-go';
-    else if (myS === 'O') cls += ' status-ok';
-    else if (myS === 'X') cls += ' status-no';
-    if (d === todayD) cls += ' is-today';
-
-    const numCls = ['day-num',
-      d === todayD ? 'today-num' : '',
-      dow === 0 ? 'sun-num' : dow === 6 ? 'sat-num' : ''
-    ].filter(Boolean).join(' ');
-
-    const dots = MEMBERS
-      .filter(m => m !== member && allData[m]?.[key])
-      .map(m => `<div class="dot" style="background:${allData[m][key]==='O' ? COLORS[m] : '#E24B4A'};"></div>`)
-      .join('');
-
-    const answered = oList.length + xList.length;
-    const countCls = allGo ? 'day-count full' : 'day-count';
+    let slotsHTML = '';
+    for (const slot of SLOTS) {
+      const key = `${d}_${slot}`;
+      const myX = myData[key]==='X';
+      const {unavail, grade} = getSlotInfo(d, slot);
+      const otherDots = MEMBERS
+        .filter(m => m!==member && unavail.has(m))
+        .map(m => `<div class="dot" style="background:${COLORS[m]};"></div>`)
+        .join('');
+      const pip = (!myX && grade!=='none') ? `<div class="grade-pip ${grade}"></div>` : '';
+      slotsHTML += `
+        <div class="slot${myX?' unavail':''}" onclick="doToggle(${d},'${slot}')">
+          ${pip}
+          <span class="slot-label">${myX?'✕ '+slot:slot}</span>
+          <div class="dot-row">${otherDots}</div>
+        </div>`;
+    }
 
     cells += `
-      <div class="${cls}" onclick="doToggle(${d})">
-        <span class="${numCls}">${d}</span>
-        <span class="day-status ${myS==='O'?'ok':myS==='X'?'no':''}">
-          ${myS==='O'?'가능':myS==='X'?'불가':''}
-        </span>
-        <div class="dot-row">${dots}</div>
-        ${answered > 0 ? `<span class="${countCls}">${oList.length}/${MEMBERS.length}</span>` : ''}
+      <div class="day-cell${isToday?' today':''}">
+        <div class="day-header"><span class="${numCls}">${d}</span></div>
+        ${slotsHTML}
       </div>`;
   }
 
-  const fmt  = days => days.map(d => `${month}/${d}`).join(', ');
-  const rowsHTML = MEMBERS.filter(m => m !== member).map(m => {
-    const ans = Object.keys(allData[m] || {}).length;
-    const oC  = Object.values(allData[m] || {}).filter(v => v === 'O').length;
-    return `
-      <div class="status-member">
-        <div class="status-dot" style="background:${ans ? COLORS[m] : '#d0d0c8'};"></div>
-        <span class="status-member-name">${m}</span>
-        ${ans
-          ? `<span class="status-member-count">${oC}일</span>`
-          : `<span class="status-member-none">미응답</span>`}
+  const fmt = (days, slot) => !days.length ? '' : `
+    <div class="summary-row">
+      <span class="slot-tag">${slot}</span>
+      <span class="days">${days.map(d=>`${month}/${d}`).join(', ')}</span>
+    </div>`;
+
+  let summaryHTML = '';
+  for (const g of ['perfect','good','okay']) {
+    const l=byGrade[g]['점심'], d2=byGrade[g]['저녁'];
+    if (!l.length && !d2.length) continue;
+    summaryHTML += `
+      <div class="summary-card">
+        <div class="summary-title">
+          <div class="grade-badge" style="background:${GRADE_COLOR[g]};"></div>
+          ${GRADE_LABEL[g]}
+        </div>
+        ${fmt(l,'점심')}${fmt(d2,'저녁')}
       </div>`;
+  }
+  if (!summaryHTML) summaryHTML = `<div class="summary-card"><p class="summary-none">아직 입력된 데이터가 없어요</p></div>`;
+
+  const statusRows = MEMBERS.filter(m=>m!==member).map(m => {
+    const xCount = Object.values(state.allData[m]||{}).filter(v=>v==='X').length;
+    const hasData = Object.keys(state.allData[m]||{}).length > 0;
+    return `<div class="status-row">
+      <div class="status-dot" style="background:${hasData?COLORS[m]:'var(--border2)'};"></div>
+      <span style="color:${hasData?'var(--text)':'var(--text3)'};">${m}</span>
+      <span style="color:var(--text2);margin-left:auto;">${hasData?xCount+'개 불가':'미응답'}</span>
+    </div>`;
   }).join('');
 
   return `
     <div class="top-bar">
       <div class="user-badge">
-        <div class="avatar" style="background:${COLORS[member]}22; border:1.5px solid ${COLORS[member]}; color:${COLORS[member]};">
-          ${member[0]}
-        </div>
+        <div class="avatar" style="background:${COLORS[member]}22;border:1.5px solid ${COLORS[member]};color:${COLORS[member]};">${member[0]}</div>
         <span class="user-name">${member}</span>
         <span class="live-badge"><span class="live-dot"></span>실시간</span>
       </div>
@@ -545,43 +305,33 @@ function renderCalendar() {
     </div>
 
     <div class="month-nav">
-      <button class="nav-btn" onclick="doMonth(-1)">◀</button>
+      <button onclick="doMonth(-1)">◀</button>
       <span class="month-label">${year}년 ${month}월</span>
-      <button class="nav-btn" onclick="doMonth(1)">▶</button>
+      <button onclick="doMonth(1)">▶</button>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3b6d11;"></div>전원 가능</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#639922;"></div>가능</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#BA7517;"></div>아쉽지만 가능</div>
+      <div class="legend-item"><div style="width:14px;height:10px;background:#fef0f0;border:0.5px solid #e4e4de;border-radius:2px;"></div>불가 표시</div>
     </div>
 
     <div class="dow-row">
-      ${['일','월','화','수','목','금','토'].map((d,i) =>
-        `<div class="dow-cell ${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('')}
+      ${['일','월','화','수','목','금','토'].map((d,i)=>`<div class="dow-cell ${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('')}
     </div>
     <div class="cal-grid">${cells}</div>
-
-    <div class="summary-card">
-      <p class="summary-title">전원 가능한 날 (${possibleDays.length}일)</p>
-      <p class="summary-val ${possibleDays.length?'has-days':''}">
-        ${possibleDays.length ? fmt(possibleDays) : '아직 없음'}
-      </p>
-      ${nearDays.length ? `
-        <p class="near-title">1명 미응답 날 (${nearDays.length}일)</p>
-        <p class="near-val">${fmt(nearDays)}</p>
-      ` : ''}
+    ${summaryHTML}
+    <div class="status-card">
+      <p class="status-title">이번 달 응답 현황</p>
+      <div class="status-grid2">${statusRows}</div>
     </div>
-
-    <div class="status-grid">
-      <p class="status-grid-title">이번 달 응답 현황</p>
-      <div class="status-member-grid">${rowsHTML}</div>
-    </div>
-
-    <p class="hint">날짜 클릭: 미응답 → 가능(초록) → 불가(빨강) 순으로 변경<br>다른 멤버 응답은 작은 점으로 표시됩니다</p>
-  `;
+    <p class="hint">점심/저녁 칸 클릭 = 불가 표시 · 다시 클릭하면 해제<br>작은 컬러 점 = 다른 멤버 불가 표시 · 우상단 점 = 가용 등급</p>`;
 }
 
-/* ── 메인 렌더 ── */
 function render() {
-  document.getElementById('app').innerHTML =
-    state.member ? renderCalendar() : renderLogin();
+  document.getElementById('app').innerHTML = state.member ? renderCalendar() : renderLogin();
 }
-
 render();
 </script>
 </body>
