@@ -493,12 +493,14 @@ function renderDayDetail(d) {
     const notDoneChips = notDoneList.map(m=>
       `<span class="chip chip-none">${m}</span>`).join('');
 
+    const adminBlocked = isBlocked(d, slot);
     slotsHTML+=`
       <div>
         <div class="detail-slot-title">${slot}</div>
-        ${unavailList.length ? `<p class="detail-label" style="color:#a32d2d;">불가</p><div class="member-chips" style="margin-bottom:6px;">${unavailChips}</div>` : ''}
-        ${notDoneList.length ? `<p class="detail-label">미응답</p><div class="member-chips">${notDoneChips}</div>` : ''}
-        ${!unavailList.length && !notDoneList.length ? `<p class="all-ok-msg">전원 가능</p>` : ''}
+        ${adminBlocked ? `<p class="detail-label" style="color:#a32d2d;font-weight:700;">관리자 지정 불가</p>` : ''}
+        ${!adminBlocked && unavailList.length ? `<p class="detail-label" style="color:#a32d2d;">불가</p><div class="member-chips" style="margin-bottom:6px;">${unavailChips}</div>` : ''}
+        ${!adminBlocked && notDoneList.length ? `<p class="detail-label">미응답</p><div class="member-chips">${notDoneChips}</div>` : ''}
+        ${!adminBlocked && !unavailList.length && !notDoneList.length ? `<p class="all-ok-msg">전원 가능</p>` : ''}
       </div>`;
   }
   return `
