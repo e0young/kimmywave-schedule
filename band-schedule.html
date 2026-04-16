@@ -6,7 +6,6 @@
   <title>합주 일정 조율</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -114,12 +113,11 @@
     .loading { text-align:center; padding:3rem; color:var(--text2); font-size:14px; }
     .error-msg { text-align:center; padding:2rem; color:#a32d2d; font-size:13px; }
 
-    /* ── 드래그 핸들 ── */
-    .drag-handle { color:var(--text3); font-size:14px; cursor:grab; padding:0 4px; flex-shrink:0; user-select:none; touch-action:none; }
-    .drag-handle:active { cursor:grabbing; }
-    .song-item { transition:opacity .15s; }
-    .song-item.dragging { opacity:0.4; }
-    .song-item.drag-over { border-top:2px solid #7F77DD; }
+    /* ── 순서 버튼 ── */
+    .order-btns { display:flex; flex-direction:column; gap:1px; flex-shrink:0; }
+    .order-btn { background:none; border:none; color:var(--text3); font-size:11px; padding:1px 4px; cursor:pointer; line-height:1; border-radius:3px; }
+    .order-btn:hover { background:var(--bg3); color:var(--text); }
+    .order-btn:disabled { opacity:0.2; cursor:default; }
     /* ── 탭 ── */
     .tab-bar { display:flex; border-bottom:0.5px solid var(--border); margin-bottom:1rem; }
     .tab-btn { padding:8px 20px; font-size:14px; font-weight:500; cursor:pointer; color:var(--text2); border-bottom:2px solid transparent; background:none; border-left:none; border-right:none; border-top:none; border-radius:0; }
@@ -232,6 +230,18 @@ function getOrderedSetlist() {
   return state.setlistOrder.map(num => SETLIST.find(s => s.num === num)).filter(Boolean);
 }
 
+
+function moveSong(idx, dir) {
+  const ordered = getOrderedSetlist();
+  const newOrder = ordered.map(s => s.num);
+  const target = idx + dir;
+  if (target < 0 || target >= newOrder.length) return;
+  [newOrder[idx], newOrder[target]] = [newOrder[target], newOrder[idx]];
+  state.setlistOrder = newOrder;
+  saveSetlistOrder();
+  render();
+}
+
 function saveSetlistOrder() {
   const order = getOrderedSetlist().map(s => s.num);
   db.ref('setlist_order').set(order);
@@ -265,9 +275,12 @@ function renderSetlist() {
       </div>` : '';
 
     return `
-      <div class="song-item" draggable="true" data-num="${song.num}" data-idx="${idx}">
+      <div class="song-item" data-num="${song.num}" data-idx="${idx}">
         <div class="song-row">
-          <span class="drag-handle" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">⠿</span>
+          <div class="order-btns">
+            <button class="order-btn" onclick="moveSong(${idx},-1)" ${idx===0?'disabled':''}>▲</button>
+            <button class="order-btn" onclick="moveSong(${idx},1)" ${idx===ordered.length-1?'disabled':''}>▼</button>
+          </div>
           <span class="song-num">${idx+1}</span>
           <div class="song-info" onclick="state.expandedSong=${isExp?'null':song.num};render();" style="cursor:pointer;">
             <div class="song-title">${song.title}</div>
@@ -285,7 +298,7 @@ function renderSetlist() {
   return `
     ${renderTabBar()}
     <div class="song-list" id="song-list">${rows}</div>
-    <p class="hint" style="margin-top:8px;">⠿ 핸들 드래그로 순서 변경 · 빨간 점 = 유튜브 링크 있음</p>`;
+    <p class="hint" style="margin-top:8px;">▲▼ 버튼으로 순서 변경 · 빨간 점 = 유튜브 링크 있음</p>`;
 }
 
 let state = {
@@ -759,8 +772,6 @@ function renderTabBar() {
 function render() {
   if (state.tab === 'setlist') {
     document.getElementById('app').innerHTML = renderSetlist();
-    sortableInstance = null;
-    setTimeout(initSortable, 0);
     return;
   }
   document.getElementById('app').innerHTML = state.isAdmin ? renderAdmin() : (state.member ? renderCalendar() : renderLogin());
@@ -768,30 +779,6 @@ function render() {
 
 attachListener();
 loadSetlistOrder();
-
-/* ── SortableJS 드래그 ── */
-let sortableInstance = null;
-
-function initSortable() {
-  const el = document.getElementById('song-list');
-  if (!el || sortableInstance) return;
-  sortableInstance = new Sortable(el, {
-    handle: '.drag-handle',
-    animation: 150,
-    ghostClass: 'dragging',
-    chosenClass: 'dragging',
-    onEnd(evt) {
-      const ordered = getOrderedSetlist();
-      const newOrder = ordered.map(s => s.num);
-      const [moved] = newOrder.splice(evt.oldIndex, 1);
-      newOrder.splice(evt.newIndex, 0, moved);
-      state.setlistOrder = newOrder;
-      sortableInstance = null;
-      saveSetlistOrder();
-      render();
-    }
-  });
-}
 </script>
 </body>
 </html>
