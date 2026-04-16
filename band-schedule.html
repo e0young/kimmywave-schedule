@@ -182,7 +182,8 @@ function xCount(m)     { return Object.entries(state.allData[m]||{}).filter(([k,
 function getSlotInfo(d, slot) {
   const key = `${d}_${slot}`;
   const unavail = new Set(MEMBERS.filter(m => state.allData[m]?.[key]==='X'));
-  const avail   = new Set(MEMBERS.filter(m => !unavail.has(m)));
+  // 제출 완료한 멤버 중 X 없는 사람만 가능으로 계산
+  const avail   = new Set(MEMBERS.filter(m => isDone(m) && !unavail.has(m)));
   return { unavail, avail, grade: calcGrade(avail) };
 }
 
