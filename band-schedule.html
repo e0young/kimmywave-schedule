@@ -387,11 +387,15 @@ function doSelectDay(d) { state.selectedDay = state.selectedDay===d ? null : d; 
 function doAdminLogin() { state.isAdmin=true; state.selectedDay=null; render(); }
 function doAdminLogout() { state.isAdmin=false; state.selectedDay=null; render(); }
 function isGameDay(d, slot) { return state.allData['_admin']?.[d+'_'+slot] === 'Y'; }
+function isBlocked(d, slot)  { return state.allData['_admin']?.[d+'_'+slot] === 'B'; }
 function doAdminToggle(d, slot) {
   const key=d+'_'+slot;
   const ref=db.ref('schedule/'+monthKey(state.year,state.month)+'/_admin/'+key);
-  if (isGameDay(d, slot)) { delete state.allData['_admin'][key]; ref.remove(); }
-  else                     { if(!state.allData['_admin']) state.allData['_admin']={}; state.allData['_admin'][key]='Y'; ref.set('Y'); }
+  const cur = state.allData['_admin']?.[key];
+  if (!state.allData['_admin']) state.allData['_admin']={};
+  if (!cur)      { state.allData['_admin'][key]='Y'; ref.set('Y'); }
+  else if(cur==='Y') { state.allData['_admin'][key]='B'; ref.set('B'); }
+  else           { delete state.allData['_admin'][key]; ref.remove(); }
   render();
 }
 
@@ -447,15 +451,19 @@ function renderCalGrid(editable) {
       const key=`${d}_${slot}`;
       const myX = editable && myData[key]==='X';
       const {grade}=getSlotInfo(d,slot);
-      const slotClick = editable ? `onclick="doToggle(${d},'${slot}')"` : '';
+      const blocked = isBlocked(d, slot);
       const gameDay = isGameDay(d, slot);
-      const bg = myX ? '#fef0f0'
+      const slotClick = (editable && !blocked) ? `onclick="doToggle(${d},'${slot}')"` : '';
+      const bg = blocked ? '#f0efea'
+        : myX ? '#fef0f0'
         : (showGrade && grade!=='none') ? GRADE_BG[grade]
         : 'transparent';
       const border = gameDay ? 'outline:2px solid #e24b4a;outline-offset:-2px;' : '';
+      const labelStyle = blocked ? 'color:#a0a09a;' : myX ? 'color:#a32d2d;font-weight:700;' : '';
+      const labelText  = blocked ? '✕ '+slot : myX ? '✕ '+slot : slot;
       slotsHTML+=`
-        <div class="slot${editable?' clickable':''}" style="background:${bg};${border}" ${slotClick}>
-          <span class="slot-label" style="${myX?'color:#a32d2d;font-weight:700;':''}">${myX?'✕ '+slot:slot}</span>
+        <div class="slot${(editable&&!blocked)?' clickable':''}" style="background:${bg};${border}" ${slotClick}>
+          <span class="slot-label" style="${labelStyle}">${labelText}</span>
         </div>`;
     }
 
@@ -727,11 +735,14 @@ function renderAdmin() {
     for (const slot of SLOTS) {
       const {grade}=getSlotInfo(d,slot);
       const gameDay=isGameDay(d,slot);
-      const bg=(showGrade&&grade!=='none')?GRADE_BG[grade]:'transparent';
+      const blocked2=isBlocked(d,slot);
+      const bg=blocked2?'#f0efea':(showGrade&&grade!=='none')?GRADE_BG[grade]:'transparent';
       const border=gameDay?'2px solid #e24b4a':'none';
+      const adminLabel=gameDay?'✕ '+slot:blocked2?'✕ '+slot:slot;
+      const adminStyle=gameDay?'color:#a32d2d;font-weight:700;':blocked2?'color:#a0a09a;font-weight:700;':'';
       slotsHTML+=`
         <div class="slot clickable" style="background:${bg};outline:${border};outline-offset:-2px;" onclick="doAdminToggle(${d},'${slot}')">
-          <span class="slot-label" style="${gameDay?'color:#a32d2d;font-weight:700;':''}">${slot}</span>
+          <span class="slot-label" style="${adminStyle}">${adminLabel}</span>
         </div>`;
     }
     cells+=`
@@ -767,6 +778,7 @@ function renderAdmin() {
 
     <div class="legend">
       <div class="legend-item"><div style="width:14px;height:10px;border:2px solid #e24b4a;border-radius:2px;"></div>합주일 지정</div>
+      <div class="legend-item"><div style="width:14px;height:10px;background:#f0efea;border:0.5px solid var(--border);border-radius:2px;"></div>전체 불가</div>
       <div class="legend-item"><div class="legend-dot" style="background:#97c97a;"></div>전원 가능</div>
       <div class="legend-item"><div class="legend-dot" style="background:#dff5d0;border:0.5px solid var(--border);"></div>가능</div>
       <div class="legend-item"><div class="legend-dot" style="background:#faeeda;border:0.5px solid var(--border);"></div>아쉽지만 가능</div>
@@ -783,7 +795,7 @@ function renderAdmin() {
         ? `<p style="font-size:13px;color:var(--text);line-height:2;">${gameDays.join(' &nbsp;·&nbsp; ')}</p>`
         : `<p style="font-size:12px;color:var(--text3);">아직 지정된 합주일이 없어요</p>`}
     </div>
-    <p class="hint">슬롯 클릭으로 합주일 지정/취소 · 날짜 숫자 클릭으로 상세 현황</p>`;
+    <p class="hint">슬롯 클릭: 합주일(빨간 테두리) → 전체불가(회색) → 해제 · 날짜 숫자 클릭으로 상세 현황</p>`;
 }
 
 
