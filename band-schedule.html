@@ -147,7 +147,7 @@ function calcGrade(availSet) {
   if (!hasGuitarS || !hasKeybd) return 'none';
   if (!hasGuitarB && !hasBass) return 'none';
   if (!hasVocal || !hasDrum) return 'none';
-  if (availSet.size === MEMBERS.length) return 'perfect';
+  if (availSet.size === MEMBERS.length && allDone()) return 'perfect';
   if (hasGuitarB && hasBass) return 'good';
   return 'okay';
 }
