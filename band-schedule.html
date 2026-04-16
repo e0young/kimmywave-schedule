@@ -367,6 +367,7 @@ function attachListener() {
     state.allData = {};
     MEMBERS.forEach(m => { state.allData[m] = data[m] || {}; });
     if (state.member) state.myData = { ...state.allData[state.member] };
+    state.loading = false;
     render();
   });
   state.listener = ref;
