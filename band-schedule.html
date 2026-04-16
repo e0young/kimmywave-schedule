@@ -231,7 +231,9 @@ function chipLabel(s) {
 /* ── 셋리스트 순서 관리 ── */
 function getOrderedSetlist() {
   if (!state.setlistOrder) return SETLIST;
-  return state.setlistOrder.map(num => SETLIST.find(s => s.num === num)).filter(Boolean);
+  const ordered = state.setlistOrder.map(num => SETLIST.find(s => s.num === num)).filter(Boolean);
+  const missing = SETLIST.filter(s => !state.setlistOrder.includes(s.num));
+  return [...ordered, ...missing];
 }
 
 
