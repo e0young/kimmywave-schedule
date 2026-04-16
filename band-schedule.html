@@ -520,6 +520,7 @@ function renderSummary() {
   const byGrade={perfect:{점심:[],저녁:[]},good:{점심:[],저녁:[]},okay:{점심:[],저녁:[]}};
   for (let d=1;d<=total;d++) {
     for (const slot of SLOTS) {
+      if (isBlocked(d, slot)) continue;
       const {grade}=getSlotInfo(d,slot);
       if (grade!=='none') byGrade[grade][slot].push(d);
     }
