@@ -4,190 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>합주 일정 조율</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js">
-/* ── 드래그 앤 드롭 (데스크탑 + 터치) ── */
-let dragSrc = null;
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+/* ── SortableJS 드래그 ── */
+let sortableInstance = null;
 
-document.addEventListener('dragstart', e => {
-  const item = e.target.closest('.song-item');
-  if (!item) return;
-  dragSrc = item;
-  setTimeout(() => item.classList.add('dragging'), 0);
-});
+function initSortable() {
+  const el = document.getElementById('song-list');
+  if (!el || sortableInstance) return;
+  sortableInstance = new Sortable(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'dragging',
+    chosenClass: 'dragging',
+    onEnd(evt) {
+      const ordered = getOrderedSetlist();
+      const newOrder = ordered.map(s => s.num);
+      const [moved] = newOrder.splice(evt.oldIndex, 1);
+      newOrder.splice(evt.newIndex, 0, moved);
+      state.setlistOrder = newOrder;
+      sortableInstance = null;
+      saveSetlistOrder();
+      render();
+    }
+  });
+}
 
-document.addEventListener('dragend', e => {
-  const item = e.target.closest('.song-item');
-  if (!item) return;
-  item.classList.remove('dragging');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-});
-
-document.addEventListener('dragover', e => {
-  e.preventDefault();
-  const item = e.target.closest('.song-item');
-  if (!item || item === dragSrc) return;
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  item.classList.add('drag-over');
-});
-
-document.addEventListener('drop', e => {
-  e.preventDefault();
-  const target = e.target.closest('.song-item');
-  if (!target || !dragSrc || target === dragSrc) return;
-  const ordered = getOrderedSetlist();
-  const fromIdx = parseInt(dragSrc.dataset.idx);
-  const toIdx   = parseInt(target.dataset.idx);
-  const newOrder = ordered.map(s => s.num);
-  const [moved] = newOrder.splice(fromIdx, 1);
-  newOrder.splice(toIdx, 0, moved);
-  state.setlistOrder = newOrder;
-  saveSetlistOrder();
-  render();
-});
-
-/* 터치 드래그 */
-let touchDragSrc = null, touchClone = null;
-
-document.addEventListener('touchstart', e => {
-  const handle = e.target.closest('.drag-handle');
-  if (!handle) return;
-  const item = handle.closest('.song-item');
-  if (!item) return;
-  touchDragSrc = item;
-  const rect = item.getBoundingClientRect();
-  touchClone = item.cloneNode(true);
-  touchClone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.8;pointer-events:none;z-index:9999;background:var(--bg);border:1px solid #7F77DD;border-radius:8px;`;
-  document.body.appendChild(touchClone);
-  item.classList.add('dragging');
-}, {passive:true});
-
-document.addEventListener('touchmove', e => {
-  if (!touchDragSrc || !touchClone) return;
-  e.preventDefault();
-  const t = e.touches[0];
-  const rect = touchDragSrc.getBoundingClientRect();
-  touchClone.style.top = (t.clientY - rect.height/2) + 'px';
-  touchClone.style.left = rect.left + 'px';
-  const el = document.elementFromPoint(t.clientX, t.clientY);
-  const target = el?.closest('.song-item');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  if (target && target !== touchDragSrc) target.classList.add('drag-over');
-}, {passive:false});
-
-document.addEventListener('touchend', e => {
-  if (!touchDragSrc) return;
-  const t = e.changedTouches[0];
-  const el = document.elementFromPoint(t.clientX, t.clientY);
-  const target = el?.closest('.song-item');
-  if (target && target !== touchDragSrc) {
-    const ordered = getOrderedSetlist();
-    const fromIdx = parseInt(touchDragSrc.dataset.idx);
-    const toIdx   = parseInt(target.dataset.idx);
-    const newOrder = ordered.map(s => s.num);
-    const [moved] = newOrder.splice(fromIdx, 1);
-    newOrder.splice(toIdx, 0, moved);
-    state.setlistOrder = newOrder;
-    saveSetlistOrder();
-    render();
-  }
-  touchDragSrc.classList.remove('dragging');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  if (touchClone) { touchClone.remove(); touchClone = null; }
-  touchDragSrc = null;
-});
-</script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js">
-/* ── 드래그 앤 드롭 (데스크탑 + 터치) ── */
-let dragSrc = null;
-
-document.addEventListener('dragstart', e => {
-  const item = e.target.closest('.song-item');
-  if (!item) return;
-  dragSrc = item;
-  setTimeout(() => item.classList.add('dragging'), 0);
-});
-
-document.addEventListener('dragend', e => {
-  const item = e.target.closest('.song-item');
-  if (!item) return;
-  item.classList.remove('dragging');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-});
-
-document.addEventListener('dragover', e => {
-  e.preventDefault();
-  const item = e.target.closest('.song-item');
-  if (!item || item === dragSrc) return;
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  item.classList.add('drag-over');
-});
-
-document.addEventListener('drop', e => {
-  e.preventDefault();
-  const target = e.target.closest('.song-item');
-  if (!target || !dragSrc || target === dragSrc) return;
-  const ordered = getOrderedSetlist();
-  const fromIdx = parseInt(dragSrc.dataset.idx);
-  const toIdx   = parseInt(target.dataset.idx);
-  const newOrder = ordered.map(s => s.num);
-  const [moved] = newOrder.splice(fromIdx, 1);
-  newOrder.splice(toIdx, 0, moved);
-  state.setlistOrder = newOrder;
-  saveSetlistOrder();
-  render();
-});
-
-/* 터치 드래그 */
-let touchDragSrc = null, touchClone = null;
-
-document.addEventListener('touchstart', e => {
-  const handle = e.target.closest('.drag-handle');
-  if (!handle) return;
-  const item = handle.closest('.song-item');
-  if (!item) return;
-  touchDragSrc = item;
-  const rect = item.getBoundingClientRect();
-  touchClone = item.cloneNode(true);
-  touchClone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.8;pointer-events:none;z-index:9999;background:var(--bg);border:1px solid #7F77DD;border-radius:8px;`;
-  document.body.appendChild(touchClone);
-  item.classList.add('dragging');
-}, {passive:true});
-
-document.addEventListener('touchmove', e => {
-  if (!touchDragSrc || !touchClone) return;
-  e.preventDefault();
-  const t = e.touches[0];
-  const rect = touchDragSrc.getBoundingClientRect();
-  touchClone.style.top = (t.clientY - rect.height/2) + 'px';
-  touchClone.style.left = rect.left + 'px';
-  const el = document.elementFromPoint(t.clientX, t.clientY);
-  const target = el?.closest('.song-item');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  if (target && target !== touchDragSrc) target.classList.add('drag-over');
-}, {passive:false});
-
-document.addEventListener('touchend', e => {
-  if (!touchDragSrc) return;
-  const t = e.changedTouches[0];
-  const el = document.elementFromPoint(t.clientX, t.clientY);
-  const target = el?.closest('.song-item');
-  if (target && target !== touchDragSrc) {
-    const ordered = getOrderedSetlist();
-    const fromIdx = parseInt(touchDragSrc.dataset.idx);
-    const toIdx   = parseInt(target.dataset.idx);
-    const newOrder = ordered.map(s => s.num);
-    const [moved] = newOrder.splice(fromIdx, 1);
-    newOrder.splice(toIdx, 0, moved);
-    state.setlistOrder = newOrder;
-    saveSetlistOrder();
-    render();
-  }
-  touchDragSrc.classList.remove('dragging');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  if (touchClone) { touchClone.remove(); touchClone = null; }
-  touchDragSrc = null;
-});
-</script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -940,6 +783,8 @@ function renderTabBar() {
 function render() {
   if (state.tab === 'setlist') {
     document.getElementById('app').innerHTML = renderSetlist();
+    sortableInstance = null;
+    setTimeout(initSortable, 0);
     return;
   }
   document.getElementById('app').innerHTML = state.isAdmin ? renderAdmin() : (state.member ? renderCalendar() : renderLogin());
@@ -947,97 +792,6 @@ function render() {
 
 attachListener();
 loadSetlistOrder();
-
-/* ── 드래그 앤 드롭 (데스크탑 + 터치) ── */
-let dragSrc = null;
-
-document.addEventListener('dragstart', e => {
-  const item = e.target.closest('.song-item');
-  if (!item) return;
-  dragSrc = item;
-  setTimeout(() => item.classList.add('dragging'), 0);
-});
-
-document.addEventListener('dragend', e => {
-  const item = e.target.closest('.song-item');
-  if (!item) return;
-  item.classList.remove('dragging');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-});
-
-document.addEventListener('dragover', e => {
-  e.preventDefault();
-  const item = e.target.closest('.song-item');
-  if (!item || item === dragSrc) return;
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  item.classList.add('drag-over');
-});
-
-document.addEventListener('drop', e => {
-  e.preventDefault();
-  const target = e.target.closest('.song-item');
-  if (!target || !dragSrc || target === dragSrc) return;
-  const ordered = getOrderedSetlist();
-  const fromIdx = parseInt(dragSrc.dataset.idx);
-  const toIdx   = parseInt(target.dataset.idx);
-  const newOrder = ordered.map(s => s.num);
-  const [moved] = newOrder.splice(fromIdx, 1);
-  newOrder.splice(toIdx, 0, moved);
-  state.setlistOrder = newOrder;
-  saveSetlistOrder();
-  render();
-});
-
-/* 터치 드래그 */
-let touchDragSrc = null, touchClone = null;
-
-document.addEventListener('touchstart', e => {
-  const handle = e.target.closest('.drag-handle');
-  if (!handle) return;
-  const item = handle.closest('.song-item');
-  if (!item) return;
-  touchDragSrc = item;
-  const rect = item.getBoundingClientRect();
-  touchClone = item.cloneNode(true);
-  touchClone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.8;pointer-events:none;z-index:9999;background:var(--bg);border:1px solid #7F77DD;border-radius:8px;`;
-  document.body.appendChild(touchClone);
-  item.classList.add('dragging');
-}, {passive:true});
-
-document.addEventListener('touchmove', e => {
-  if (!touchDragSrc || !touchClone) return;
-  e.preventDefault();
-  const t = e.touches[0];
-  const rect = touchDragSrc.getBoundingClientRect();
-  touchClone.style.top = (t.clientY - rect.height/2) + 'px';
-  touchClone.style.left = rect.left + 'px';
-  const el = document.elementFromPoint(t.clientX, t.clientY);
-  const target = el?.closest('.song-item');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  if (target && target !== touchDragSrc) target.classList.add('drag-over');
-}, {passive:false});
-
-document.addEventListener('touchend', e => {
-  if (!touchDragSrc) return;
-  const t = e.changedTouches[0];
-  const el = document.elementFromPoint(t.clientX, t.clientY);
-  const target = el?.closest('.song-item');
-  if (target && target !== touchDragSrc) {
-    const ordered = getOrderedSetlist();
-    const fromIdx = parseInt(touchDragSrc.dataset.idx);
-    const toIdx   = parseInt(target.dataset.idx);
-    const newOrder = ordered.map(s => s.num);
-    const [moved] = newOrder.splice(fromIdx, 1);
-    newOrder.splice(toIdx, 0, moved);
-    state.setlistOrder = newOrder;
-    saveSetlistOrder();
-    render();
-  }
-  touchDragSrc.classList.remove('dragging');
-  document.querySelectorAll('.song-item').forEach(el => el.classList.remove('drag-over'));
-  if (touchClone) { touchClone.remove(); touchClone = null; }
-  touchDragSrc = null;
-});
 </script>
 </body>
 </html>
