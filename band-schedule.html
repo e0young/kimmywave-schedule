@@ -5,30 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>합주 일정 조율</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-/* ── SortableJS 드래그 ── */
-let sortableInstance = null;
-
-function initSortable() {
-  const el = document.getElementById('song-list');
-  if (!el || sortableInstance) return;
-  sortableInstance = new Sortable(el, {
-    handle: '.drag-handle',
-    animation: 150,
-    ghostClass: 'dragging',
-    chosenClass: 'dragging',
-    onEnd(evt) {
-      const ordered = getOrderedSetlist();
-      const newOrder = ordered.map(s => s.num);
-      const [moved] = newOrder.splice(evt.oldIndex, 1);
-      newOrder.splice(evt.newIndex, 0, moved);
-      state.setlistOrder = newOrder;
-      sortableInstance = null;
-      saveSetlistOrder();
-      render();
-    }
-  });
-}
-
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -792,6 +768,30 @@ function render() {
 
 attachListener();
 loadSetlistOrder();
+
+/* ── SortableJS 드래그 ── */
+let sortableInstance = null;
+
+function initSortable() {
+  const el = document.getElementById('song-list');
+  if (!el || sortableInstance) return;
+  sortableInstance = new Sortable(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'dragging',
+    chosenClass: 'dragging',
+    onEnd(evt) {
+      const ordered = getOrderedSetlist();
+      const newOrder = ordered.map(s => s.num);
+      const [moved] = newOrder.splice(evt.oldIndex, 1);
+      newOrder.splice(evt.newIndex, 0, moved);
+      state.setlistOrder = newOrder;
+      sortableInstance = null;
+      saveSetlistOrder();
+      render();
+    }
+  });
+}
 </script>
 </body>
 </html>
