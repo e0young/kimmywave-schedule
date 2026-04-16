@@ -169,6 +169,14 @@ function firstDOW(y,m) { return new Date(y,m-1,1).getDay(); }
 function isDone(m)     { return state.allData[m]?.['_done'] === 'Y'; }
 function allDone()     { return MEMBERS.every(m => isDone(m)); }
 function doneCount()   { return MEMBERS.filter(m => isDone(m)).length; }
+function canShowGrade() {
+  return allDone() || (
+    isDone('기타(손)') && isDone('건반') &&
+    ['보컬(박)','보컬(이)'].some(m => isDone(m)) &&
+    ['드럼(의)','드럼(현)'].some(m => isDone(m)) &&
+    ['기타(배)','베이스'].some(m => isDone(m))
+  );
+}
 function xCount(m)     { return Object.entries(state.allData[m]||{}).filter(([k,v])=>k!=='_done'&&v==='X').length; }
 
 function getSlotInfo(d, slot) {
@@ -232,7 +240,8 @@ function renderCalGrid(editable) {
   const total=daysIn(year,month), first=firstDOW(year,month);
   const today=new Date();
   const todayD=today.getFullYear()===year&&today.getMonth()+1===month?today.getDate():-1;
-  const all=allDone();
+  const showGrade=canShowGrade();
+  const GRADE_BG={perfect:'#d4ecc0',good:'#e4f2d0',okay:'#faeeda'};
 
   let cells='';
   for (let i=0;i<first;i++) cells+='<div></div>';
@@ -250,29 +259,20 @@ function renderCalGrid(editable) {
     for (const slot of SLOTS) {
       const key=`${d}_${slot}`;
       const myX = editable && myData[key]==='X';
-      const {unavail,grade}=getSlotInfo(d,slot);
-      const otherDots = MEMBERS
-        .filter(m => m!==member && unavail.has(m))
-        .map(m=>`<div class="dot" style="background:${COLORS[m]};"></div>`)
-        .join('');
-      const myDot = (editable && myX) ? '' :
-        (!editable && member && unavail.has(member))
-          ? `<div class="dot" style="background:${COLORS[member]};"></div>` : '';
-      const pip=(all&&grade!=='none') ? `<div class="grade-pip ${grade}"></div>` : '';
-      const slotClick = editable
-        ? `onclick="doToggle(${d},'${slot}')"` : '';
+      const {grade}=getSlotInfo(d,slot);
+      const slotClick = editable ? `onclick="doToggle(${d},'${slot}')"` : '';
+      const bg = myX ? '#fef0f0'
+        : (showGrade && grade!=='none') ? GRADE_BG[grade]
+        : 'transparent';
       slotsHTML+=`
-        <div class="slot${editable?' clickable':''}${myX?' unavail':''}" ${slotClick}>
-          ${pip}
-          <span class="slot-label">${myX?'✕ '+slot:slot}</span>
-          <div class="dot-row">${myDot}${otherDots}</div>
+        <div class="slot${editable?' clickable':''}" style="background:${bg};" ${slotClick}>
+          <span class="slot-label" style="${myX?'color:#a32d2d;font-weight:700;':''}">${myX?'✕ '+slot:slot}</span>
         </div>`;
     }
 
-    const headerClick = !editable ? `onclick="doSelectDay(${d})"` : `onclick="doSelectDay(${d})"`;
     cells+=`
       <div class="${cellCls}">
-        <div class="day-header" ${headerClick}><span class="${numCls}">${d}</span></div>
+        <div class="day-header" onclick="doSelectDay(${d})"><span class="${numCls}">${d}</span></div>
         ${slotsHTML}
       </div>`;
   }
