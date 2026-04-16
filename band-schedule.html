@@ -160,7 +160,8 @@ let state = {
   year: new Date().getFullYear(), month: new Date().getMonth()+1,
   myData: {}, allData: {},
   listener: null, loading: true, error: null,
-  selectedDay: null
+  selectedDay: null,
+  isAdmin: false
 };
 
 function monthKey(y,m) { return `${y}-${String(m).padStart(2,'0')}`; }
@@ -198,6 +199,7 @@ function attachListener() {
     const data = snap.val()||{};
     state.allData={};
     MEMBERS.forEach(m=>{ state.allData[m]=data[m]||{}; });
+    state.allData['_admin'] = data['_admin']||{};
     if (state.member) state.myData={...state.allData[state.member]};
     state.loading=false; render();
   }, err=>{
@@ -209,6 +211,16 @@ function attachListener() {
 function doLogin(m)  { state.member=m; state.myData={...state.allData[m]}; state.selectedDay=null; render(); }
 function doLogout()  { state.member=null; state.myData={}; state.selectedDay=null; render(); }
 function doSelectDay(d) { state.selectedDay = state.selectedDay===d ? null : d; render(); }
+function doAdminLogin() { state.isAdmin=true; state.selectedDay=null; render(); }
+function doAdminLogout() { state.isAdmin=false; state.selectedDay=null; render(); }
+function isGameDay(d, slot) { return state.allData['_admin']?.[d+'_'+slot] === 'Y'; }
+function doAdminToggle(d, slot) {
+  const key=d+'_'+slot;
+  const ref=db.ref('schedule/'+monthKey(state.year,state.month)+'/_admin/'+key);
+  if (isGameDay(d, slot)) { delete state.allData['_admin'][key]; ref.remove(); }
+  else                     { if(!state.allData['_admin']) state.allData['_admin']={}; state.allData['_admin'][key]='Y'; ref.set('Y'); }
+  render();
+}
 
 function doToggle(d, slot) {
   const key=`${d}_${slot}`;
@@ -262,11 +274,13 @@ function renderCalGrid(editable) {
       const myX = editable && myData[key]==='X';
       const {grade}=getSlotInfo(d,slot);
       const slotClick = editable ? `onclick="doToggle(${d},'${slot}')"` : '';
+      const gameDay = isGameDay(d, slot);
       const bg = myX ? '#fef0f0'
         : (showGrade && grade!=='none') ? GRADE_BG[grade]
         : 'transparent';
+      const border = gameDay ? 'outline:2px solid #e24b4a;outline-offset:-2px;' : '';
       slotsHTML+=`
-        <div class="slot${editable?' clickable':''}" style="background:${bg};" ${slotClick}>
+        <div class="slot${editable?' clickable':''}" style="background:${bg};${border}" ${slotClick}>
           <span class="slot-label" style="${myX?'color:#a32d2d;font-weight:700;':''}">${myX?'✕ '+slot:slot}</span>
         </div>`;
     }
@@ -395,6 +409,9 @@ function renderLogin() {
     <div class="member-grid4">${memberBtns}</div>
     <p class="hint">날짜 클릭 시 상세 현황 표시</p>
 
+    <div style="border-top:0.5px solid var(--border);margin:.75rem 0 .75rem;"></div>
+    <p class="login-section-title">내 파트 선택</p>
+
     <div style="border-top:0.5px solid var(--border);margin:1.25rem 0 1rem;"></div>
 
     <div class="card">
@@ -512,8 +529,91 @@ function renderCalendar() {
     <p class="hint">점심/저녁 칸 클릭 = 불가 표시 · 날짜 숫자 클릭 = 상세 현황<br>등급 점은 전원 완료 후 표시돼요</p>`;
 }
 
+
+/* ── 관리자 달력 ── */
+function renderAdmin() {
+  if (state.loading) return `<div class="loading">불러오는 중...</div>`;
+  if (state.error)   return `<div class="error-msg">${state.error}</div>`;
+  const {year,month} = state;
+  const total=daysIn(year,month), first=firstDOW(year,month);
+  const today=new Date();
+  const todayD=today.getFullYear()===year&&today.getMonth()+1===month?today.getDate():-1;
+  const showGrade=canShowGrade();
+  const GRADE_BG={perfect:'#97c97a',good:'#dff5d0',okay:'#faeeda'};
+
+  let cells='';
+  for (let i=0;i<first;i++) cells+='<div></div>';
+
+  for (let d=1;d<=total;d++) {
+    const dow=(first+d-1)%7;
+    const isToday=d===todayD;
+    const isSel=state.selectedDay===d;
+    const numCls=['day-num',isToday?'bold':'',dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ');
+    let cellCls='day-cell'; if(isToday) cellCls+=' today'; if(isSel) cellCls+=' selected';
+    let slotsHTML='';
+    for (const slot of SLOTS) {
+      const {grade}=getSlotInfo(d,slot);
+      const gameDay=isGameDay(d,slot);
+      const bg=(showGrade&&grade!=='none')?GRADE_BG[grade]:'transparent';
+      const border=gameDay?'2px solid #e24b4a':'none';
+      slotsHTML+=`
+        <div class="slot clickable" style="background:${bg};outline:${border};outline-offset:-2px;" onclick="doAdminToggle(${d},'${slot}')">
+          <span class="slot-label" style="${gameDay?'color:#a32d2d;font-weight:700;':''}">${slot}</span>
+        </div>`;
+    }
+    cells+=`
+      <div class="${cellCls}">
+        <div class="day-header" onclick="doSelectDay(${d})"><span class="${numCls}">${d}</span></div>
+        ${slotsHTML}
+      </div>`;
+  }
+
+  /* 지정된 합주일 목록 */
+  const gameDays=[];
+  for(let d=1;d<=total;d++){
+    for(const slot of SLOTS){
+      if(isGameDay(d,slot)) gameDays.push(`${month}/${d} ${slot}`);
+    }
+  }
+
+  return `
+    <div class="top-bar">
+      <div class="user-badge">
+        <span style="font-size:15px;font-weight:600;">관리자</span>
+        <span class="live-badge"><span class="live-dot"></span>실시간</span>
+      </div>
+      <button onclick="doAdminLogout()">나가기</button>
+    </div>
+
+    <div class="month-nav">
+      <button onclick="doMonth(-1)">◀</button>
+      <span class="month-label">${year}년 ${month}월</span>
+      <button onclick="doMonth(1)">▶</button>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div style="width:14px;height:10px;border:2px solid #e24b4a;border-radius:2px;"></div>합주일 지정</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#97c97a;"></div>전원 가능</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#dff5d0;border:0.5px solid var(--border);"></div>가능</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#faeeda;border:0.5px solid var(--border);"></div>아쉽지만 가능</div>
+    </div>
+
+    <div class="dow-row">
+      ${DOW_KR.map((d,i)=>`<div class="dow-cell ${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('')}
+    </div>
+    <div class="cal-grid">${cells}</div>
+
+    <div class="card">
+      <p class="card-title">지정된 합주일</p>
+      ${gameDays.length
+        ? `<p style="font-size:13px;color:var(--text);line-height:2;">${gameDays.join(' &nbsp;·&nbsp; ')}</p>`
+        : `<p style="font-size:12px;color:var(--text3);">아직 지정된 합주일이 없어요</p>`}
+    </div>
+    <p class="hint">슬롯 클릭으로 합주일 지정/취소 · 날짜 숫자 클릭으로 상세 현황</p>`;
+}
+
 function render() {
-  document.getElementById('app').innerHTML = state.member ? renderCalendar() : renderLogin();
+  document.getElementById('app').innerHTML = state.isAdmin ? renderAdmin() : (state.member ? renderCalendar() : renderLogin());
 }
 
 attachListener();
