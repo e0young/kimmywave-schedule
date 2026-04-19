@@ -224,8 +224,7 @@ function chipClass(s) {
   return 's-chip s-chip-etc';
 }
 function chipLabel(s) {
-  if (s.includes('(BeatBox)')) return s.replace('(BeatBox)','').trim() + '(BB)';
-  return s.replace('(O)','').replace('(X)','').replace('(Chorus)','').trim();
+  return s.replace('(BeatBox)','').replace('(O)','').replace('(X)','').replace('(Chorus)','').trim();
 }
 
 /* ── 셋리스트 순서 관리 ── */
