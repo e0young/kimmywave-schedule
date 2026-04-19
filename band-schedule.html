@@ -244,7 +244,14 @@ function moveSong(idx, dir) {
   if (target < 0 || target >= newOrder.length) return;
   [newOrder[idx], newOrder[target]] = [newOrder[target], newOrder[idx]];
   state.setlistOrder = newOrder;
+  state.unsavedOrder = true;
+  render();
+}
+
+
+function doSaveSetlist() {
   saveSetlistOrder();
+  state.unsavedOrder = false;
   render();
 }
 
@@ -322,6 +329,14 @@ function renderSetlist() {
   return `
     ${renderTabBar()}
     <div class="song-list" id="song-list">${rows}</div>
+    ${state.unsavedOrder ? `
+    <button onclick="doSaveSetlist()" style="
+      width:100%;margin-top:10px;padding:11px;font-size:14px;font-weight:600;
+      border-radius:var(--r);cursor:pointer;
+      border:1.5px solid #639922;color:#3b6d11;background:#eaf3de;">
+      저장하기
+    </button>
+    <p class="hint" style="margin-top:5px;">변경된 순서가 저장되지 않았어요</p>` : ''}
     <p class="hint" style="margin-top:8px;">▲▼ 버튼으로 순서 변경 · 빨간 점 = 유튜브 링크 있음</p>`;
 }
 
@@ -334,7 +349,8 @@ let state = {
   isAdmin: false,
   tab: 'schedule',
   expandedSong: null,
-  setlistOrder: null
+  setlistOrder: null,
+  unsavedOrder: null
 };
 
 function monthKey(y,m) { return `${y}-${String(m).padStart(2,'0')}`; }
